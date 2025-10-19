@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分數魔法師 - 擴分練習遊戲</title>
+    <style>
+        body {
+            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100%;
+            color: #333;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .menu-screen {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .level-card {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .level-card:hover:not(.locked) {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .level-card.locked {
+            background: #ddd;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .level-card.completed::after {
+            content: '✅';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+        }
+
+        .game-screen {
+            padding: 30px;
+            display: none;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
+        .score {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            min-height: 400px;
+        }
+
+        .base-fractions {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .draggable-fractions {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .fraction-card {
+            background: white;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .base-card {
+            min-height: 100px;
+            border: 3px dashed #3498db;
+            background: #ecf0f1;
+        }
+
+        .base-card.has-match {
+            border-color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .draggable-card {
+            cursor: grab;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+            border-color: #6c5ce7;
+            max-width: 180px;
+            margin: 8px auto;
+        }
+
+        .draggable-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .draggable-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .fraction-display {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .fraction-bar {
+            width: 100%;
+            height: 16px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 8px;
+            position: relative;
+        }
+
+        .fraction-fill {
+            height: 100%;
+            background: #9b59b6;
+            transition: width 0.3s ease;
+        }
+
+        .fraction-segments {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .segment {
+            border-right: 2px solid white;
+            flex: 1;
+        }
+
+        .segment:last-child {
+            border-right: none;
+        }
+
+        .drop-zone {
+            min-height: 60px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 5px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #3498db;
+            background: #ebf3fd;
+        }
+
+        .dropped-card {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+            cursor: default;
+            position: relative;
+        }
+
+        .dropped-card::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feedback.success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .feedback.error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .feedback.show {
+            opacity: 1;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .completion-screen {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border-radius: 20px;
+            margin: 20px;
+        }
+
+        .stars {
+            font-size: 3rem;
+            margin: 20px 0;
+        }
+
+        .completion-message {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            color: #2c3e50;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .hint {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            transition: width 0.5s ease;
+        }
+
+        .game-instructions {
+            margin-bottom: 20px;
+        }
+
+        .instruction-card {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            border: 2px solid #e17055;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .instruction-card h3 {
+            margin: 0 0 15px 0;
+            color: #2d3436;
+            font-size: 1.4rem;
+        }
+
+        .instruction-card p {
+            margin: 0 0 15px 0;
+            color: #2d3436;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .example {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #e17055;
+            display: inline-block;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .multi-choice-screen {
+            display: none;
+            padding: 40px;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .question-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .option-card {
+            background: white;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .option-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .option-card.selected {
+            border-color: #3498db;
+            background: #ebf3fd;
+        }
+
+        .option-card.correct {
+            border-color: #27ae60;
+            background: #d5f4e6;
+        }
+
+        .option-card.incorrect {
+            border-color: #e74c3c;
+            background: #fadbd8;
+        }
+
+        .summary-content {
+            display: grid;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .achievement-card, .skills-card, .encouragement-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .achievement-card h3, .skills-card h3, .encouragement-card h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-item {
+            background: linear-gradient(135deg, #a8e6cf, #88d8a3);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .skill-item:hover {
+            transform: scale(1.05);
+        }
+
+        .skill-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .skill-text {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .achievement-item {
+            background: linear-gradient(135deg, #ffd89b, #19547b);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .achievement-icon {
+            font-size: 2rem;
+        }
+
+        .achievement-text {
+            flex: 1;
+        }
+
+        .achievement-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .achievement-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .encouragement-card p {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .superhero-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .superhero-card h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+        }
+
+        .superhero-card p {
+            margin: 0 0 25px 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .superhero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .superhero-option {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+
+        .superhero-option:hover {
+            transform: scale(1.05);
+        }
+
+        .superhero-frame {
+            width: 180px;
+            height: 240px;
+            margin: 0 auto 15px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border: 4px solid #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 10px;
+        }
+
+        .red-hero {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 50%, #d63031 100%);
+        }
+
+        .blue-hero {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #2d3436 100%);
+        }
+
+        .green-hero {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 50%, #2d3436 100%);
+        }
+
+        .superhero-head {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .superhero-face {
+            width: 60px;
+            height: 60px;
+            background: #ffeaa7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .superhero-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 40px;
+            border-radius: 40px 40px 0 0;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .red-hero .superhero-mask {
+            background: rgba(255,0,0,0.4);
+        }
+
+        .blue-hero .superhero-mask {
+            background: rgba(0,100,255,0.4);
+        }
+
+        .green-hero .superhero-mask {
+            background: rgba(0,150,0,0.4);
+        }
+
+        .superhero-body {
+            position: relative;
+            width: 100px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px 50px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .superhero-chest {
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            z-index: 2;
+        }
+
+        .superhero-cape {
+            position: absolute;
+            top: -10px;
+            left: -20px;
+            width: 140px;
+            height: 100px;
+            border-radius: 70px 70px 0 0;
+            background: rgba(255,255,255,0.1);
+            z-index: 1;
+        }
+
+        .signature-area {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .signature-area h4 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .certificate-preview {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border: 3px solid #f39c12;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .certificate-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .certificate-content p {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .name-input {
+            border: none;
+            border-bottom: 3px solid #f39c12;
+            background: transparent;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            color: #2c3e50;
+            padding: 10px;
+            margin: 10px;
+            min-width: 200px;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-bottom-color: #e67e22;
+        }
+
+        .selected-hero-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .certificate-date {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .superhero-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+
+        .superhero-option.selected .superhero-frame {
+            border-color: #f39c12;
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
+        }
+
+        .superhero-option.selected .superhero-name {
+            color: #f39c12;
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .fraction-display {
+                font-size: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🎯 分數魔法師</h1>
+            <p>透過拖拉配對，掌握分數擴分的奧秘！</p>
+        </div>
+
+        <!-- 關卡選單 -->
+        <div id="menuScreen" class="menu-screen">
+            <h2>選擇你的挑戰關卡</h2>
+            <div class="level-grid">
+                <button class="level-card" onclick="startLevel(1)">
+                    <h3>第一關：基礎配對</h3>
+                    <p>練習簡單的分數配對，如 1/2 → 2/4</p>
+                    <div>🎯 新手友善</div>
+                </button>
+                <button class="level-card locked" onclick="startLevel(2)">
+                    <h3>第二關：雙配對挑戰</h3>
+                    <p>找出多個等值分數</p>
+                    <div>🔒 完成第一關解鎖</div>
+                </button>
+                <button class="level-card locked" onclick="startLevel(3)">
+                    <h3>第三關：陷阱挑戰</h3>
+                    <p>小心干擾選項！</p>
+                    <div>🔒 完成第二關解鎖</div>
+                </button>
+                <button class="level-card locked" onclick="startLevel(4)">
+                    <h3>第四關：限時模式</h3>
+                    <p>在 60 秒內完成挑戰！</p>
+                    <div>🔒 完成第三關解鎖</div>
+                </button>
+                <button class="level-card locked" onclick="startMultiChoice()">
+                    <h3>額外挑戰：多選題</h3>
+                    <p>找出所有等值分數</p>
+                    <div>🔒 完成第四關解鎖</div>
+                </button>
+                <button class="level-card locked" onclick="showSummary()">
+                    <h3>學習成果總結</h3>
+                    <p>回顧你的學習歷程</p>
+                    <div>🔒 完成所有挑戰解鎖</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 遊戲畫面 -->
+        <div id="gameScreen" class="game-screen">
+            <div class="game-header">
+                <button class="button" onclick="showMenu()">🏠 返回選單</button>
+                <div class="score">得分：<span id="score">0</span></div>
+                <div class="timer" id="timer" style="display: none;">時間：<span id="timeLeft">60</span>秒</div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div id="gameInstructions" class="game-instructions" style="display: none;">
+                <div class="instruction-card">
+                    <h3>🎯 遊戲說明</h3>
+                    <p>每個基本分數可能有<strong>多個正確答案</strong>！找出所有等值分數並拖拉到對應的基本分數下方。</p>
+                </div>
+            </div>
+
+            <div class="game-area">
+                <div class="base-fractions">
+                    <div class="section-title">基本分數</div>
+                    <div id="baseFractions"></div>
+                </div>
+
+                <div class="draggable-fractions">
+                    <div class="section-title">拖拉等值分數到左邊配對</div>
+                    <div id="draggableFractions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 多選題畫面 -->
+        <div id="multiChoiceScreen" class="multi-choice-screen">
+            <div class="game-header">
+                <button class="button" onclick="showMenu()">🏠 返回選單</button>
+                <div class="score">得分：<span id="multiScore">0</span></div>
+            </div>
+
+            <div class="question-card">
+                <div class="question-title" id="questionTitle">以下哪些分數和 2/5 相等？</div>
+                <div class="options-grid" id="optionsGrid"></div>
+                <button class="button" id="submitBtn" onclick="submitMultiChoice()" style="margin-top: 20px;">提交答案</button>
+            </div>
+        </div>
+
+        <!-- 完成畫面 -->
+        <div id="completionScreen" class="completion-screen">
+            <h2>🎉 任務完成！</h2>
+            <div class="stars" id="starsDisplay"></div>
+            <div class="completion-message" id="completionMessage"></div>
+            <div class="score">你答對了 <span id="correctCount">0</span> 題，共 <span id="totalCount">0</span> 題</div>
+            <div>
+                <button class="button" onclick="restartLevel()">🔁 再挑戰一次</button>
+                <button class="button" onclick="showMenu()">🏠 返回選單</button>
+            </div>
+        </div>
+
+        <!-- 學習成果總結畫面 -->
+        <div id="summaryScreen" class="completion-screen" style="display: none;">
+            <h2>🏆 學習成果總結</h2>
+            <div class="summary-content">
+                <div class="achievement-card">
+                    <h3>🎯 你的學習歷程</h3>
+                    <div id="achievementsList"></div>
+                </div>
+                
+                <div class="skills-card">
+                    <h3>🌟 你已掌握的技能</h3>
+                    <div class="skills-grid">
+                        <div class="skill-item">
+                            <div class="skill-icon">🔢</div>
+                            <div class="skill-text">基礎分數概念</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon">🎯</div>
+                            <div class="skill-text">等值分數識別</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon">🧮</div>
+                            <div class="skill-text">分數擴分運算</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon">⚡</div>
+                            <div class="skill-text">快速判斷能力</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon">🎪</div>
+                            <div class="skill-text">多重配對技巧</div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="skill-icon">🔍</div>
+                            <div class="skill-text">陷阱題識破</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="superhero-card">
+                    <h3>🦸‍♂️ 恭喜獲得擴分超人證書！</h3>
+                    <p>你已經完成所有挑戰，選擇一個超人造型並輸入你的姓名獲得專屬證書！</p>
+                    <div class="superhero-grid">
+                        <div class="superhero-option" onclick="selectSuperhero('red')">
+                            <div class="superhero-frame red-hero">
+                                <div class="superhero-head">
+                                    <div class="superhero-face">😊</div>
+                                    <div class="superhero-mask"></div>
+                                </div>
+                                <div class="superhero-body">
+                                    <div class="superhero-chest">🔥</div>
+                                    <div class="superhero-cape"></div>
+                                </div>
+                            </div>
+                            <div class="superhero-name">烈焰擴分俠</div>
+                        </div>
+                        <div class="superhero-option" onclick="selectSuperhero('blue')">
+                            <div class="superhero-frame blue-hero">
+                                <div class="superhero-head">
+                                    <div class="superhero-face">😊</div>
+                                    <div class="superhero-mask"></div>
+                                </div>
+                                <div class="superhero-body">
+                                    <div class="superhero-chest">❄️</div>
+                                    <div class="superhero-cape"></div>
+                                </div>
+                            </div>
+                            <div class="superhero-name">冰霜擴分王</div>
+                        </div>
+                        <div class="superhero-option" onclick="selectSuperhero('green')">
+                            <div class="superhero-frame green-hero">
+                                <div class="superhero-head">
+                                    <div class="superhero-face">😊</div>
+                                    <div class="superhero-mask"></div>
+                                </div>
+                                <div class="superhero-body">
+                                    <div class="superhero-chest">🌿</div>
+                                    <div class="superhero-cape"></div>
+                                </div>
+                            </div>
+                            <div class="superhero-name">森林擴分使</div>
+                        </div>
+                    </div>
+                    
+                    <div class="signature-area" id="signatureArea" style="display: none;">
+                        <h4>✍️ 在你的超人證書上簽名</h4>
+                        <div class="certificate-preview">
+                            <div class="certificate-header">🏆 擴分超人證書 🏆</div>
+                            <div class="certificate-content">
+                                <p>茲證明</p>
+                                <input type="text" id="studentName" placeholder="請輸入你的姓名" class="name-input">
+                                <p>已完成分數擴分魔法訓練</p>
+                                <p>正式成為</p>
+                                <div class="selected-hero-display" id="selectedHeroDisplay"></div>
+                                <div class="certificate-date">頒發日期：<span id="certificateDate"></span></div>
+                            </div>
+                        </div>
+                        <button class="button" onclick="generateCertificate()">🎉 生成我的證書</button>
+                    </div>
+                </div>
+
+                <div class="encouragement-card">
+                    <h3>💪 給你的鼓勵</h3>
+                    <p id="encouragementText">恭喜你完成了所有的分數魔法挑戰！你展現了出色的數學思維和堅持不懈的精神。透過這些練習，你不僅學會了分數的擴分概念，更培養了邏輯思考和問題解決的能力。繼續保持這份學習熱忱，你一定能在數學的道路上走得更遠！</p>
+                </div>
+            </div>
+            
+            <div>
+                <button class="button" onclick="showMenu()">🏠 返回選單</button>
+                <button class="button" onclick="restartAllLevels()">🔄 重新挑戰所有關卡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 回饋元素 -->
+    <div id="feedback" class="feedback"></div>
+
+    <script>
+        let currentLevel = 1;
+        let score = 0;
+        let attempts = 0;
+        let correctMatches = 0;
+        let totalMatches = 0;
+        let gameTimer = null;
+        let timeLeft = 60;
+        let completedLevels = JSON.parse(localStorage.getItem('completedLevels') || '[]');
+        let selectedOptions = [];
+        let multiChoiceQuestions = [
+            {
+                question: "以下哪些分數和 2/5 相等？",
+                options: [
+                    { fraction: "4/10", correct: true },
+                    { fraction: "6/15", correct: true },
+                    { fraction: "3/7", correct: false },
+                    { fraction: "5/12", correct: false }
+                ]
+            },
+            {
+                question: "以下哪些分數和 1/3 相等？",
+                options: [
+                    { fraction: "2/6", correct: true },
+                    { fraction: "3/9", correct: true },
+                    { fraction: "4/12", correct: true },
+                    { fraction: "2/5", correct: false }
+                ]
+            }
+        ];
+        let currentQuestionIndex = 0;
+
+        const levels = {
+            1: {
+                name: "基礎配對",
+                bases: [
+                    { fraction: "1/2", num: 1, den: 2 },
+                    { fraction: "2/3", num: 2, den: 3 },
+                    { fraction: "1 1/4", num: 5, den: 4, isMixed: true }
+                ],
+                draggables: [
+                    { fraction: "2/4", num: 2, den: 4, matches: ["1/2"] },
+                    { fraction: "4/6", num: 4, den: 6, matches: ["2/3"] },
+                    { fraction: "1 2/8", num: 10, den: 8, isMixed: true, matches: ["1 1/4"] },
+                    { fraction: "3/5", num: 3, den: 5, matches: [] },
+                    { fraction: "5/7", num: 5, den: 7, matches: [] }
+                ]
+            },
+            2: {
+                name: "雙配對挑戰",
+                bases: [
+                    { fraction: "1/3", num: 1, den: 3 },
+                    { fraction: "2/5", num: 2, den: 5 }
+                ],
+                draggables: [
+                    { fraction: "2/6", num: 2, den: 6, matches: ["1/3"] },
+                    { fraction: "4/12", num: 4, den: 12, matches: ["1/3"] },
+                    { fraction: "6/15", num: 6, den: 15, matches: ["2/5"] },
+                    { fraction: "10/25", num: 10, den: 25, matches: ["2/5"] },
+                    { fraction: "3/7", num: 3, den: 7, matches: [] },
+                    { fraction: "5/12", num: 5, den: 12, matches: [] }
+                ]
+            },
+            3: {
+                name: "陷阱挑戰",
+                bases: [
+                    { fraction: "1/4", num: 1, den: 4 },
+                    { fraction: "3/5", num: 3, den: 5 },
+                    { fraction: "2/7", num: 2, den: 7 }
+                ],
+                draggables: [
+                    { fraction: "2/8", num: 2, den: 8, matches: ["1/4"] },
+                    { fraction: "3/12", num: 3, den: 12, matches: ["1/4"] },
+                    { fraction: "6/10", num: 6, den: 10, matches: ["3/5"] },
+                    { fraction: "9/15", num: 9, den: 15, matches: ["3/5"] },
+                    { fraction: "4/14", num: 4, den: 14, matches: ["2/7"] },
+                    { fraction: "3/8", num: 3, den: 8, matches: [] },
+                    { fraction: "4/9", num: 4, den: 9, matches: [] },
+                    { fraction: "5/11", num: 5, den: 11, matches: [] }
+                ]
+            },
+            4: {
+                name: "限時模式",
+                bases: [
+                    { fraction: "1/2", num: 1, den: 2 },
+                    { fraction: "1/3", num: 1, den: 3 },
+                    { fraction: "2/3", num: 2, den: 3 },
+                    { fraction: "3/4", num: 3, den: 4 }
+                ],
+                draggables: [
+                    { fraction: "2/4", num: 2, den: 4, matches: ["1/2"] },
+                    { fraction: "3/6", num: 3, den: 6, matches: ["1/2"] },
+                    { fraction: "2/6", num: 2, den: 6, matches: ["1/3"] },
+                    { fraction: "4/12", num: 4, den: 12, matches: ["1/3"] },
+                    { fraction: "4/6", num: 4, den: 6, matches: ["2/3"] },
+                    { fraction: "6/9", num: 6, den: 9, matches: ["2/3"] },
+                    { fraction: "6/8", num: 6, den: 8, matches: ["3/4"] },
+                    { fraction: "9/12", num: 9, den: 12, matches: ["3/4"] },
+                    { fraction: "3/7", num: 3, den: 7, matches: [] },
+                    { fraction: "5/8", num: 5, den: 8, matches: [] }
+                ],
+                timed: true
+            }
+        };
+
+        function updateLevelButtons() {
+            const levelCards = document.querySelectorAll('.level-card');
+            levelCards.forEach((card, index) => {
+                const levelNum = index + 1;
+                if (completedLevels.includes(levelNum)) {
+                    card.classList.add('completed');
+                }
+                if (levelNum === 1 || completedLevels.includes(levelNum - 1)) {
+                    card.classList.remove('locked');
+                    if (levelNum <= 4) {
+                        card.onclick = () => startLevel(levelNum);
+                    } else if (levelNum === 5) {
+                        card.onclick = () => startMultiChoice();
+                    } else if (levelNum === 6) {
+                        // 總結頁面需要完成所有關卡
+                        if (completedLevels.includes(5)) {
+                            card.classList.remove('locked');
+                            card.onclick = () => showSummary();
+                        }
+                    }
+                }
+            });
+        }
+
+        function startLevel(level) {
+            if (level > 1 && !completedLevels.includes(level - 1)) {
+                showFeedback('請先完成前一關！', 'error');
+                return;
+            }
+
+            currentLevel = level;
+            score = 0;
+            attempts = 0;
+            correctMatches = 0;
+            
+            const levelData = levels[level];
+            totalMatches = levelData.draggables.filter(d => d.matches.length > 0).length;
+            
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('completionScreen').style.display = 'none';
+            document.getElementById('multiChoiceScreen').style.display = 'none';
+            
+            if (levelData.timed) {
+                timeLeft = 60;
+                document.getElementById('timer').style.display = 'block';
+                startTimer();
+            } else {
+                document.getElementById('timer').style.display = 'none';
+            }
+            
+            // 顯示遊戲說明（第二關以後）
+            if (level >= 2) {
+                document.getElementById('gameInstructions').style.display = 'block';
+            } else {
+                document.getElementById('gameInstructions').style.display = 'none';
+            }
+            
+            setupGame(levelData);
+            updateScore();
+            updateProgress();
+        }
+
+        function startMultiChoice() {
+            if (!completedLevels.includes(4)) {
+                showFeedback('請先完成第四關！', 'error');
+                return;
+            }
+
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedOptions = [];
+            
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('completionScreen').style.display = 'none';
+            document.getElementById('multiChoiceScreen').style.display = 'block';
+            
+            setupMultiChoice();
+        }
+
+        function setupMultiChoice() {
+            const question = multiChoiceQuestions[currentQuestionIndex];
+            document.getElementById('questionTitle').textContent = question.question;
+            document.getElementById('multiScore').textContent = score;
+            
+            const optionsGrid = document.getElementById('optionsGrid');
+            optionsGrid.innerHTML = '';
+            selectedOptions = [];
+            
+            question.options.forEach((option, index) => {
+                const optionCard = document.createElement('div');
+                optionCard.className = 'option-card';
+                optionCard.dataset.index = index;
+                optionCard.innerHTML = `
+                    <div class="fraction-display">${option.fraction}</div>
+                    ${createFractionBar(parseInt(option.fraction.split('/')[0]), parseInt(option.fraction.split('/')[1]))}
+                `;
+                
+                optionCard.addEventListener('click', () => toggleOption(index));
+                optionsGrid.appendChild(optionCard);
+            });
+        }
+
+        function toggleOption(index) {
+            const optionCard = document.querySelector(`[data-index="${index}"]`);
+            
+            if (selectedOptions.includes(index)) {
+                selectedOptions = selectedOptions.filter(i => i !== index);
+                optionCard.classList.remove('selected');
+            } else {
+                selectedOptions.push(index);
+                optionCard.classList.add('selected');
+            }
+        }
+
+        function submitMultiChoice() {
+            const question = multiChoiceQuestions[currentQuestionIndex];
+            const correctIndices = question.options.map((option, index) => option.correct ? index : -1).filter(i => i !== -1);
+            
+            let correct = true;
+            
+            // 檢查是否選對了所有正確答案且沒有選錯誤答案
+            if (selectedOptions.length !== correctIndices.length) {
+                correct = false;
+            } else {
+                for (let index of correctIndices) {
+                    if (!selectedOptions.includes(index)) {
+                        correct = false;
+                        break;
+                    }
+                }
+                for (let index of selectedOptions) {
+                    if (!correctIndices.includes(index)) {
+                        correct = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (correct) {
+                // 只有答對時才顯示正確答案的綠色框
+                question.options.forEach((option, index) => {
+                    const optionCard = document.querySelector(`[data-index="${index}"]`);
+                    if (option.correct) {
+                        optionCard.classList.add('correct');
+                    }
+                });
+                
+                score += 20;
+                showFeedback('太棒了！全部答對！', 'success');
+                
+                setTimeout(() => {
+                    currentQuestionIndex++;
+                    if (currentQuestionIndex < multiChoiceQuestions.length) {
+                        setupMultiChoice();
+                    } else {
+                        endMultiChoice();
+                    }
+                }, 2000);
+            } else {
+                // 答錯時不顯示任何答案提示，只給解題引導
+                let hintMessage = '';
+                if (question.question.includes('2/5')) {
+                    hintMessage = '提示：想想看 2/5 的分子和分母可以同時乘以什麼數字？試試 2、3、4...';
+                } else if (question.question.includes('1/3')) {
+                    hintMessage = '提示：1/3 等於多少個六分之一？多少個九分之一？分子分母同時乘以相同數字！';
+                }
+                
+                showFeedback(hintMessage, 'error');
+                
+                // 重置選項狀態，讓學生重新作答
+                setTimeout(() => {
+                    question.options.forEach((option, index) => {
+                        const optionCard = document.querySelector(`[data-index="${index}"]`);
+                        optionCard.classList.remove('selected');
+                    });
+                    selectedOptions = [];
+                }, 3000);
+            }
+            
+            document.getElementById('multiScore').textContent = score;
+        }
+
+        function endMultiChoice() {
+            // 只有全部答對才能通關
+            if (score === multiChoiceQuestions.length * 20) {
+                if (!completedLevels.includes(5)) {
+                    completedLevels.push(5);
+                    localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+                }
+                
+                document.getElementById('multiChoiceScreen').style.display = 'none';
+                document.getElementById('completionScreen').style.display = 'block';
+                
+                document.getElementById('starsDisplay').textContent = '⭐⭐⭐';
+                document.getElementById('completionMessage').textContent = '太棒了！你已完成所有分數魔法挑戰！';
+                document.getElementById('correctCount').textContent = multiChoiceQuestions.length;
+                document.getElementById('totalCount').textContent = multiChoiceQuestions.length;
+            } else {
+                // 沒有全部答對，重新開始多選題
+                showFeedback('需要全部答對才能通關！重新挑戰', 'error');
+                setTimeout(() => {
+                    startMultiChoice();
+                }, 2000);
+            }
+        }
+
+        function startTimer() {
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timeLeft').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(gameTimer);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function setupGame(levelData) {
+            const baseFractionsContainer = document.getElementById('baseFractions');
+            const draggableFractionsContainer = document.getElementById('draggableFractions');
+            
+            baseFractionsContainer.innerHTML = '<div class="section-title">基本分數</div>';
+            draggableFractionsContainer.innerHTML = '<div class="section-title">拖拉等值分數到左邊配對</div>';
+            
+            levelData.bases.forEach(base => {
+                const baseCard = createBaseFractionCard(base);
+                baseFractionsContainer.appendChild(baseCard);
+            });
+            
+            const shuffled = [...levelData.draggables].sort(() => Math.random() - 0.5);
+            shuffled.forEach(draggable => {
+                const draggableCard = createDraggableFractionCard(draggable);
+                draggableFractionsContainer.appendChild(draggableCard);
+            });
+        }
+
+        function createBaseFractionCard(base) {
+            const card = document.createElement('div');
+            card.className = 'fraction-card base-card';
+            card.dataset.fraction = base.fraction;
+            
+            card.innerHTML = `
+                <div class="fraction-display">${base.fraction}</div>
+                ${createFractionBar(base.num, base.den, base.isMixed)}
+                <div class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+            `;
+            
+            return card;
+        }
+
+        function createDraggableFractionCard(draggable) {
+            const card = document.createElement('div');
+            card.className = 'fraction-card draggable-card';
+            card.draggable = true;
+            card.dataset.fraction = draggable.fraction;
+            card.dataset.matches = JSON.stringify(draggable.matches);
+            
+            card.innerHTML = `
+                <div class="fraction-display">${draggable.fraction}</div>
+                ${createFractionBar(draggable.num, draggable.den)}
+            `;
+            
+            card.addEventListener('dragstart', dragStart);
+            card.addEventListener('dragend', dragEnd);
+            
+            return card;
+        }
+
+        function createFractionBar(numerator, denominator, isMixed = false) {
+            if (isMixed && numerator > denominator) {
+                // 帶分數的視覺化：顯示完整的圓形加上部分圓形
+                const wholeNumber = Math.floor(numerator / denominator);
+                const remainder = numerator % denominator;
+                
+                let wholeBars = '';
+                for (let i = 0; i < wholeNumber; i++) {
+                    wholeBars += `
+                        <div class="fraction-bar" style="margin-bottom: 5px;">
+                            <div class="fraction-fill" style="width: 100%"></div>
+                            <div class="fraction-segments">
+                                ${Array(denominator).fill('<div class="segment"></div>').join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                const partialFillPercentage = (remainder / denominator) * 100;
+                const partialBar = remainder > 0 ? `
+                    <div class="fraction-bar">
+                        <div class="fraction-fill" style="width: ${partialFillPercentage}%"></div>
+                        <div class="fraction-segments">
+                            ${Array(denominator).fill('<div class="segment"></div>').join('')}
+                        </div>
+                    </div>
+                ` : '';
+                
+                return wholeBars + partialBar;
+            } else {
+                const fillPercentage = (numerator / denominator) * 100;
+                let segments = '';
+                for (let i = 0; i < denominator; i++) {
+                    segments += '<div class="segment"></div>';
+                }
+                
+                return `
+                    <div class="fraction-bar">
+                        <div class="fraction-fill" style="width: ${fillPercentage}%"></div>
+                        <div class="fraction-segments">${segments}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.fraction);
+            e.target.classList.add('dragging');
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function dragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            const draggedFraction = e.dataTransfer.getData('text/plain');
+            const draggedElement = document.querySelector(`[data-fraction="${draggedFraction}"]`);
+            const dropZone = e.currentTarget;
+            const baseCard = dropZone.closest('.base-card');
+            const baseFraction = baseCard.dataset.fraction;
+            
+            const matches = JSON.parse(draggedElement.dataset.matches);
+            
+            if (matches.includes(baseFraction)) {
+                const clonedCard = draggedElement.cloneNode(true);
+                clonedCard.className = 'fraction-card dropped-card';
+                clonedCard.draggable = false;
+                dropZone.appendChild(clonedCard);
+                
+                draggedElement.remove();
+                baseCard.classList.add('has-match');
+                
+                correctMatches++;
+                score += 10;
+                showFeedback('太棒了！✓', 'success');
+                
+                if (correctMatches >= totalMatches) {
+                    setTimeout(() => {
+                        endGame();
+                    }, 1000);
+                }
+            } else {
+                attempts++;
+                draggedElement.classList.add('shake');
+                setTimeout(() => {
+                    draggedElement.classList.remove('shake');
+                }, 500);
+                
+                showFeedback('再試一次！', 'error');
+                
+                if (attempts >= 2) {
+                    showHint(baseCard);
+                }
+            }
+            
+            updateScore();
+            updateProgress();
+        }
+
+        function showHint(baseCard) {
+            const existingHint = baseCard.querySelector('.hint');
+            if (!existingHint) {
+                const hint = document.createElement('div');
+                hint.className = 'hint';
+                hint.textContent = '提示：試試看，分子與分母同時乘上相同的數！';
+                baseCard.appendChild(hint);
+                
+                setTimeout(() => {
+                    hint.remove();
+                }, 5000);
+            }
+        }
+
+        function showFeedback(message, type) {
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = message;
+            feedback.className = `feedback ${type} show`;
+            
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 1500);
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+        }
+
+        function updateProgress() {
+            const progress = (correctMatches / totalMatches) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function endGame() {
+            if (gameTimer) {
+                clearInterval(gameTimer);
+            }
+            
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('completionScreen').style.display = 'block';
+            
+            let stars = '⭐⭐⭐';
+            let message = "太棒了！你已完成分數魔法挑戰！";
+            
+            if (attempts > 2) {
+                stars = '⭐';
+                message = "再試一次拿到滿星吧！";
+            } else if (attempts > 0) {
+                stars = '⭐⭐';
+                message = "很棒！繼續加油！";
+            }
+            
+            document.getElementById('starsDisplay').textContent = stars;
+            document.getElementById('completionMessage').textContent = message;
+            document.getElementById('correctCount').textContent = correctMatches;
+            document.getElementById('totalCount').textContent = totalMatches;
+            
+            if (!completedLevels.includes(currentLevel)) {
+                completedLevels.push(currentLevel);
+                localStorage.setItem('completedLevels', JSON.stringify(completedLevels));
+            }
+        }
+
+        function restartLevel() {
+            if (document.getElementById('multiChoiceScreen').style.display !== 'none') {
+                startMultiChoice();
+            } else {
+                startLevel(currentLevel);
+            }
+        }
+
+        function showSummary() {
+            if (!completedLevels.includes(5)) {
+                showFeedback('請先完成所有挑戰！', 'error');
+                return;
+            }
+
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('completionScreen').style.display = 'none';
+            document.getElementById('multiChoiceScreen').style.display = 'none';
+            document.getElementById('summaryScreen').style.display = 'block';
+            
+            setupSummary();
+        }
+
+        function setupSummary() {
+            const achievementsList = document.getElementById('achievementsList');
+            achievementsList.innerHTML = '';
+            
+            const achievements = [
+                { 
+                    level: 1, 
+                    icon: '🎯', 
+                    title: '第一關：基礎配對大師', 
+                    desc: '成功掌握了分數的基本配對概念' 
+                },
+                { 
+                    level: 2, 
+                    icon: '🎪', 
+                    title: '第二關：雙配對挑戰者', 
+                    desc: '學會了一個分數可以有多個等值形式' 
+                },
+                { 
+                    level: 3, 
+                    icon: '🔍', 
+                    title: '第三關：陷阱識破專家', 
+                    desc: '培養了辨識錯誤選項的敏銳觀察力' 
+                },
+                { 
+                    level: 4, 
+                    icon: '⚡', 
+                    title: '第四關：限時挑戰冠軍', 
+                    desc: '在時間壓力下仍能準確判斷分數關係' 
+                },
+                { 
+                    level: 5, 
+                    icon: '🏆', 
+                    title: '額外挑戰：多選題達人', 
+                    desc: '完美掌握了複雜的多重選擇技巧' 
+                }
+            ];
+            
+            achievements.forEach(achievement => {
+                if (completedLevels.includes(achievement.level)) {
+                    const achievementItem = document.createElement('div');
+                    achievementItem.className = 'achievement-item';
+                    achievementItem.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-text">
+                            <div class="achievement-title">${achievement.title}</div>
+                            <div class="achievement-desc">${achievement.desc}</div>
+                        </div>
+                    `;
+                    achievementsList.appendChild(achievementItem);
+                }
+            });
+        }
+
+        function selectSuperhero(type) {
+            // 移除之前的選擇
+            document.querySelectorAll('.superhero-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // 選擇當前的超人
+            event.currentTarget.classList.add('selected');
+            
+            let heroName = '';
+            let heroIcon = '';
+            switch(type) {
+                case 'red':
+                    heroName = '烈焰擴分俠';
+                    heroIcon = '🔥';
+                    break;
+                case 'blue':
+                    heroName = '冰霜擴分王';
+                    heroIcon = '❄️';
+                    break;
+                case 'green':
+                    heroName = '森林擴分使';
+                    heroIcon = '🌿';
+                    break;
+            }
+            
+            // 顯示簽名區域
+            const signatureArea = document.getElementById('signatureArea');
+            signatureArea.style.display = 'block';
+            
+            // 更新證書預覽
+            const selectedHeroDisplay = document.getElementById('selectedHeroDisplay');
+            selectedHeroDisplay.innerHTML = `<span>${heroIcon}</span> ${heroName}`;
+            
+            // 設定當前日期
+            const today = new Date();
+            const dateString = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+            document.getElementById('certificateDate').textContent = dateString;
+            
+            showFeedback(`你選擇了${heroName}！請輸入姓名完成證書`, 'success');
+            
+            // 儲存選擇的超人類型
+            localStorage.setItem('selectedSuperhero', type);
+            localStorage.setItem('selectedHeroName', heroName);
+            localStorage.setItem('selectedHeroIcon', heroIcon);
+        }
+
+        function generateCertificate() {
+            const studentName = document.getElementById('studentName').value.trim();
+            
+            if (!studentName) {
+                showFeedback('請輸入你的姓名！', 'error');
+                return;
+            }
+            
+            const heroName = localStorage.getItem('selectedHeroName') || '擴分超人';
+            
+            showFeedback(`🎉 恭喜 ${studentName} 成為 ${heroName}！證書已生成！`, 'success');
+            
+            // 儲存學生姓名
+            localStorage.setItem('studentName', studentName);
+            localStorage.setItem('certificateGenerated', 'true');
+        }
+
+        function restartAllLevels() {
+            if (confirm('確定要重新開始所有關卡嗎？這將清除你的進度記錄。')) {
+                localStorage.removeItem('completedLevels');
+                completedLevels = [];
+                showMenu();
+                showFeedback('已重置所有進度，開始新的挑戰吧！', 'success');
+            }
+        }
+
+        function showMenu() {
+            document.getElementById('menuScreen').style.display = 'block';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('completionScreen').style.display = 'none';
+            document.getElementById('multiChoiceScreen').style.display = 'none';
+            document.getElementById('summaryScreen').style.display = 'none';
+            
+            if (gameTimer) {
+                clearInterval(gameTimer);
+            }
+            
+            updateLevelButtons();
+        }
+
+        updateLevelButtons();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'990e90117509f234',t:'MTc2MDg1ODk0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
